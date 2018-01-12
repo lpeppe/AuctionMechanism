@@ -10,19 +10,19 @@ import net.tomp2p.storage.Data;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class AuctionMechanismImpl implements AuctionMechanism {
 
     final private PeerDHT peer;
     final private int DEFAULT_MASTER_PORT = 4000;
-    private static ScheduledTask st;
+    final private int id;
+    private ScheduledTask st;
     private ArrayList<String> myAuctions;
 
     public AuctionMechanismImpl(final int peerId) throws Exception {
         peer = new PeerBuilderDHT(new PeerBuilder(Number160.createHash(peerId)).ports(DEFAULT_MASTER_PORT + peerId).start()).start();
+        id = peerId;
         FutureBootstrap fb = this.peer.peer().bootstrap().inetAddress(InetAddress.getByName("127.0.0.1")).ports(DEFAULT_MASTER_PORT).start();
         fb.awaitUninterruptibly();
         if (fb.isSuccess()) {
@@ -31,78 +31,14 @@ public class AuctionMechanismImpl implements AuctionMechanism {
 
         peer.peer().objectDataReply(new ObjectDataReply() {
             public Object reply(PeerAddress sender, Object request) throws Exception {
-                System.err.println(request);
-                printMenu();
+                System.err.println("[Peer " + peerId + "] " + request);
                 return null;
             }
         });
         myAuctions = new ArrayList<String>();
         Timer time = new Timer();
         st = new ScheduledTask();
-        time.schedule(st, 0, 1000 * 60);
-    }
-
-    public static void main(String[] args) throws Exception {
-        AuctionMechanismImpl impl = new AuctionMechanismImpl(Integer.parseInt(args[0]));
-        generateCLI(impl);
-    }
-
-    private static void printMenu() {
-        System.out.println("1 - Vendi qualcosa");
-        System.out.println("2 - Fai un'offerta");
-        System.out.println("3 - Controlla asta");
-        System.out.println("0 - Esci");
-    }
-
-    private static void generateCLI(AuctionMechanismImpl impl) throws InputMismatchException {
-        Scanner scanner = new Scanner(System.in);
-        String auctionName, endTime, description;
-        Date endTimeDate;
-        double reservedPrice;
-        while (true) {
-            try {
-                printMenu();
-                int selection = Integer.parseInt(scanner.nextLine());
-                if (selection == 0) {
-                    st.cancel();
-                    System.exit(0);
-                }
-                switch (selection) {
-                    case 1:
-                        System.out.println("Inserisci il nome dell'asta");
-                        auctionName = scanner.nextLine();
-                        System.out.println("Inserisci l'end time");
-                        endTime = scanner.nextLine();
-                        endTimeDate = new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(endTime);
-                        System.out.println("Inserisci il prezzo di riserva");
-                        reservedPrice = Double.parseDouble(scanner.nextLine());
-                        System.out.println("Inserisci la descrizione");
-                        description = scanner.nextLine();
-                        if (impl.createAuction(auctionName, endTimeDate, reservedPrice, description))
-                            System.out.println("Asta creata!");
-                        else
-                            System.out.println("Errore nella creazione dell'asta!");
-                        break;
-                    case 2:
-                        System.out.println("Inserisci il nome dell'asta");
-                        auctionName = scanner.nextLine();
-                        System.out.println("Inserisci l'offerta");
-                        impl.placeAbid(auctionName, Double.parseDouble(scanner.nextLine()));
-                        break;
-                    case 3:
-                        System.out.println("Inserisci il nome dell'asta");
-                        auctionName = scanner.nextLine();
-                        System.out.println(impl.checkAuction(auctionName));
-                        break;
-                }
-            } catch (InputMismatchException err) {
-                System.out.println("Input non valido!");
-                //scanner.next();
-            } catch (ParseException e) {
-                System.out.println("Input non valido!");
-                //scanner.next();
-            }
-        }
+        time.schedule(st, 0, 10000);
     }
 
     public boolean createAuction(String _auction_name, Date _end_time, double _reserved_price, String _description) {
@@ -128,7 +64,6 @@ public class AuctionMechanismImpl implements AuctionMechanism {
                 String bids = "";
                 for (double bid : auction.getBids().values())
                     bids += bid + "\n";
-                System.out.println(auction.getBids().values().size());
                 return "Descrizione: " + auction.getDescription() + "\nOfferte: " + bids;
             }
         } catch (NoSuchElementException e) {
@@ -159,6 +94,8 @@ public class AuctionMechanismImpl implements AuctionMechanism {
 
         public void run() {
             try {
+                System.out.println(myAuctions);
+                List<String> removedItems = new ArrayList<String>();
                 for (String auctionName : myAuctions) {
                     FutureGet futureGet = peer.get(Number160.createHash(auctionName)).start();
                     futureGet.awaitUninterruptibly();
@@ -176,11 +113,14 @@ public class AuctionMechanismImpl implements AuctionMechanism {
                                 else if (bid > secondMax)
                                     secondMax = bid;
                             }
+                            removedItems.add(auctionName);
+                            peer.remove(Number160.createHash(auctionName)).start().awaitUninterruptibly();
                             peer.peer().sendDirect(winner).object("Hai vinto l'asta " + auction.getName() + " e devi pagare " + secondMax).start().awaitUninterruptibly();
-                            System.out.println("L'asta " + auction.getName() + " è stata chiusa. Hai guadagnato " + secondMax);
+                            System.out.println("[Peer " + id + "] L'asta " + auction.getName() + " è stata chiusa. Hai guadagnato " + secondMax);
                         }
                     }
                 }
+                myAuctions.removeAll(removedItems);
             } catch (Exception e) {
                 e.printStackTrace();
             }
