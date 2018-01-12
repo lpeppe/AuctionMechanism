@@ -157,22 +157,27 @@ public class AuctionMechanismImpl implements AuctionMechanism {
 
     public class ScheduledTask extends TimerTask {
 
-        Date now; // to display current time
-
-        // Add your task here
         public void run() {
             try {
-                now = new Date(); // initialize date
-                System.out.println("Time is :" + now); // Display current time
                 for (String auctionName : myAuctions) {
                     FutureGet futureGet = peer.get(Number160.createHash(auctionName)).start();
                     futureGet.awaitUninterruptibly();
                     if (futureGet.isSuccess()) {
                         Auction auction = ((Auction) futureGet.dataMap().values().iterator().next().object());
-                        if(auction.getEndTime().before(new Date())) {
-                            double max = 0, secondMax = 0;
-                            PeerAddress winner;
-                            
+                        if (auction.getEndTime().before(new Date())) {
+                            HashMap<PeerAddress, Double> bids = auction.getBids();
+                            double secondMax = 0;
+                            PeerAddress winner = null;
+                            double max = Collections.max(bids.values());
+                            for (PeerAddress addr : bids.keySet()) {
+                                double bid = bids.get(addr);
+                                if (bid == max)
+                                    winner = addr;
+                                else if (bid > secondMax)
+                                    secondMax = bid;
+                            }
+                            peer.peer().sendDirect(winner).object("Hai vinto l'asta " + auction.getName() + " e devi pagare " + secondMax).start().awaitUninterruptibly();
+                            System.out.println("L'asta " + auction.getName() + " è stata chiusa. Hai guadagnato " + secondMax);
                         }
                     }
                 }
