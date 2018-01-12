@@ -46,7 +46,9 @@ public class AuctionMechanismImpl implements AuctionMechanism {
             if (checkAuction(_auction_name) == null) {
                 Auction auction = new Auction(peer.peer().peerAddress(), _auction_name, _end_time, _reserved_price, _description);
                 peer.put(Number160.createHash(_auction_name)).data(new Data(auction)).start().awaitUninterruptibly();
-                myAuctions.add(_auction_name);
+                synchronized (myAuctions) {
+                    myAuctions.add(_auction_name);
+                }
                 return true;
             }
         } catch (IOException e) {
@@ -91,40 +93,48 @@ public class AuctionMechanismImpl implements AuctionMechanism {
     }
 
     public class ScheduledTask extends TimerTask {
+        List<String> removedItems = new ArrayList<String>();
 
         public void run() {
-            try {
-                System.out.println(myAuctions);
-                List<String> removedItems = new ArrayList<String>();
-                for (String auctionName : myAuctions) {
-                    FutureGet futureGet = peer.get(Number160.createHash(auctionName)).start();
-                    futureGet.awaitUninterruptibly();
-                    if (futureGet.isSuccess()) {
-                        Auction auction = ((Auction) futureGet.dataMap().values().iterator().next().object());
-                        if (auction.getEndTime().before(new Date())) {
-                            HashMap<PeerAddress, Double> bids = auction.getBids();
-                            double secondMax = 0;
-                            PeerAddress winner = null;
-                            double max = Collections.max(bids.values());
-                            for (PeerAddress addr : bids.keySet()) {
-                                double bid = bids.get(addr);
-                                if (bid == max)
-                                    winner = addr;
-                                else if (bid > secondMax)
-                                    secondMax = bid;
+            synchronized (myAuctions) {
+                try {
+                    for (String auctionName : myAuctions) {
+                        FutureGet futureGet = peer.get(Number160.createHash(auctionName)).start();
+                        futureGet.awaitUninterruptibly();
+                        if (futureGet.isSuccess()) {
+                            Auction auction = ((Auction) futureGet.dataMap().values().iterator().next().object());
+                            if (auction.getEndTime().before(new Date())) {
+                                HashMap<PeerAddress, Double> bids = auction.getBids();
+                                double secondMax = 0;
+                                PeerAddress winner = null;
+                                if (bids.values().size() > 0) {
+                                    double max = Collections.max(bids.values());
+                                    for (PeerAddress addr : bids.keySet()) {
+                                        double bid = bids.get(addr);
+                                        if (bid == max)
+                                            winner = addr;
+                                        else if (bid > secondMax)
+                                            secondMax = bid;
+                                    }
+                                    removedItems.add(auctionName);
+                                    peer.remove(Number160.createHash(auctionName)).start().awaitUninterruptibly();
+                                    peer.peer().sendDirect(winner).object("Hai vinto l'asta " + auction.getName() + " e devi pagare " + secondMax).start().awaitUninterruptibly();
+                                    System.out.println("[Peer " + id + "] L'asta " + auction.getName() + " è stata chiusa. Hai guadagnato " + secondMax);
+                                }
+                                else {
+                                    removedItems.add(auctionName);
+                                    peer.remove(Number160.createHash(auctionName)).start().awaitUninterruptibly();
+                                    System.out.println("[Peer " + id + "] L'asta " + auction.getName() + " è stata chiusa. Non ci sono state offerte");
+                                }
                             }
-                            removedItems.add(auctionName);
-                            peer.remove(Number160.createHash(auctionName)).start().awaitUninterruptibly();
-                            peer.peer().sendDirect(winner).object("Hai vinto l'asta " + auction.getName() + " e devi pagare " + secondMax).start().awaitUninterruptibly();
-                            System.out.println("[Peer " + id + "] L'asta " + auction.getName() + " è stata chiusa. Hai guadagnato " + secondMax);
                         }
                     }
+                    myAuctions.removeAll(removedItems);
+                    removedItems.clear();
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                myAuctions.removeAll(removedItems);
-            } catch (Exception e) {
-                e.printStackTrace();
             }
-
         }
     }
 }
