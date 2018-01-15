@@ -118,10 +118,13 @@ public class AuctionMechanismImpl implements AuctionMechanism {
                                     }
                                     removedItems.add(auctionName);
                                     peer.remove(Number160.createHash(auctionName)).start().awaitUninterruptibly();
-                                    peer.peer().sendDirect(winner).object("Hai vinto l'asta " + auction.getName() + " e devi pagare " + secondMax).start().awaitUninterruptibly();
-                                    System.out.println("[Peer " + id + "] L'asta " + auction.getName() + " è stata chiusa. Hai guadagnato " + secondMax);
-                                }
-                                else {
+                                    if (secondMax > auction.getReservedPrice()) {
+                                        peer.peer().sendDirect(winner).object("Hai vinto l'asta " + auction.getName() + " e devi pagare " + (secondMax == 0 ? max : secondMax)).start().awaitUninterruptibly();
+                                        System.out.println("[Peer " + id + "] L'asta " + auction.getName() + " è stata chiusa. Hai guadagnato " + (secondMax == 0 ? max : secondMax));
+                                    } else {
+                                        System.out.println("[Peer " + id + "] L'asta " + auction.getName() + " è stata chiusa. Non è stato raggiunto il prezzo minimo");
+                                    }
+                                } else {
                                     removedItems.add(auctionName);
                                     peer.remove(Number160.createHash(auctionName)).start().awaitUninterruptibly();
                                     System.out.println("[Peer " + id + "] L'asta " + auction.getName() + " è stata chiusa. Non ci sono state offerte");

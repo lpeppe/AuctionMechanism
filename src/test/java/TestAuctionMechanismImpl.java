@@ -20,8 +20,8 @@ public class TestAuctionMechanismImpl {
             peer1.placeAbid("T2", 1500);
             peer2.placeAbid("T2", 700);
             peer3.placeAbid("T2", 800);
-            peer0.checkAuction("TV");
-            Thread.sleep(TEN_SECONDS + 10000);
+            System.out.println(peer0.checkAuction("TV"));
+            //Thread.sleep(TEN_SECONDS + 10000);
             //System.out.println(peer0.createAuction("TV2", new Date(Calendar.getInstance().getTimeInMillis() + TEN_SECONDS), 1000, "LG OLED 4K"));
         }
         catch(Exception e) {
