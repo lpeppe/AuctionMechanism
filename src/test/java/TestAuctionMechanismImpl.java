@@ -1,3 +1,5 @@
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Calendar;
@@ -17,7 +19,8 @@ public class TestAuctionMechanismImpl {
             peer0.createAuction("T2", new Date(Calendar.getInstance().getTimeInMillis() + TEN_SECONDS + 10000), 1000, "LG OLED 4K");
             peer1.placeAbid("TV", 1200);
             peer2.placeAbid("TV", 2000);
-            peer1.placeAbid("T2", 1500);
+            peer0.leave();
+            System.out.println(peer1.placeAbid("T2", 1500));
             peer2.placeAbid("T2", 700);
             peer3.placeAbid("T2", 800);
             System.out.println(peer0.checkAuction("TV"));
@@ -28,4 +31,5 @@ public class TestAuctionMechanismImpl {
             e.printStackTrace();
         }
     }
+
 }
