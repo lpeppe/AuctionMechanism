@@ -14,7 +14,43 @@ class AuctionMechanismImplTest {
             AuctionMechanismImpl peer0 = new AuctionMechanismImpl(0);
             assertTrue(peer0.createAuction("TV", new Date(Calendar.getInstance().getTimeInMillis() + 1000), 1000, "LG OLED 4K"));
             assertFalse(peer0.createAuction("TV", new Date(Calendar.getInstance().getTimeInMillis() + 1000), 1000, "LG OLED 4K"));
+            peer0.leave();
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
 
+    @Test
+    void checkAuctionNoBids() {
+        try {
+            AuctionMechanismImpl peer0 = new AuctionMechanismImpl(0);
+            peer0.createAuction("TV", new Date(Calendar.getInstance().getTimeInMillis() + 1000), 1000, "LG OLED 4K");
+            assertEquals(peer0.checkAuction("TV"), "status: open\nbids: ");
+            Thread.sleep(1000);
+            assertEquals(peer0.checkAuction("TV"), "status: ended\nwinner: none\n");
+            peer0.leave();
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    void checkAuctionMultipleBids() {
+        try {
+            AuctionMechanismImpl peer0 = new AuctionMechanismImpl(0);
+            AuctionMechanismImpl peer1 = new AuctionMechanismImpl(1);
+            AuctionMechanismImpl peer2 = new AuctionMechanismImpl(2);
+            peer0.createAuction("TV", new Date(Calendar.getInstance().getTimeInMillis() + 1000), 1000, "LG OLED 4K");
+            peer1.placeAbid("TV", 2000);
+            peer2.placeAbid("TV", 1500);
+            assertEquals(peer0.checkAuction("TV"), "status: open\nbids: [Peer 1: 2000.0] [Peer 2: 1500.0] ");
+            Thread.sleep(1000);
+            assertEquals(peer0.checkAuction("TV"), "status: ended\nwinner: Peer 1\nprice: 1500.0\n");
+            peer0.leave();
+            peer1.leave();
+            peer2.leave();
         }
         catch(Exception e) {
             e.printStackTrace();
@@ -37,6 +73,9 @@ class AuctionMechanismImplTest {
             peer0.placeAbid("Auto", 5000);
             Thread.sleep(1000);
             assertEquals(peer0.checkAuction("TV"), "status: ended\nwinner: Peer 1\nprice: 1500.0\n");
+            peer0.leave();
+            peer1.leave();
+            peer2.leave();
         }
         catch(Exception e) {
             e.printStackTrace();
