@@ -95,15 +95,17 @@ public class AuctionMechanismImpl implements AuctionMechanism {
 
     public boolean leave() {
         try {
-            for (String auctionStr : myAuctions) {
-                FutureGet futureGet = dht.get(Number160.createHash(auctionStr)).start();
-                futureGet.awaitUninterruptibly();
-                if (futureGet.isSuccess()) {
-                    Auction auction = ((Auction) futureGet.dataMap().values().iterator().next().object());
-                    for(PeerAddress peer : auction.getBids().keySet())
-                        dht.peer().sendDirect(peer).object("L'autore dell'asta " + auctionStr + " ha abbandonato la rete. L'asta è stata annullata.").start().awaitUninterruptibly();
+            synchronized (myAuctions) {
+                for (String auctionStr : myAuctions) {
+                    FutureGet futureGet = dht.get(Number160.createHash(auctionStr)).start();
+                    futureGet.awaitUninterruptibly();
+                    if (futureGet.isSuccess()) {
+                        Auction auction = ((Auction) futureGet.dataMap().values().iterator().next().object());
+                        for (PeerAddress peer : auction.getBids().keySet())
+                            dht.peer().sendDirect(peer).object("L'autore dell'asta " + auctionStr + " ha abbandonato la rete. L'asta è stata annullata.").start().awaitUninterruptibly();
+                    }
+                    dht.remove(Number160.createHash(auctionStr)).start().awaitUninterruptibly();
                 }
-                dht.remove(Number160.createHash(auctionStr)).start().awaitUninterruptibly();
             }
             dht.peer().announceShutdown().start().awaitUninterruptibly();
             st.cancel();
