@@ -7,27 +7,27 @@ import java.util.Date;
 import java.util.HashMap;
 
 public class Auction implements Serializable{
-    private PeerAddress author;
+    private int author;
     private String name;
     private Date endTime;
     private double reservedPrice;
     private String description;
-    private HashMap<PeerAddress, Double> bids;
+    private HashMap<Integer, Double> bids;
 
-    public PeerAddress getAuthor() {
+    public int getAuthor() {
         return author;
     }
 
-    public Auction(PeerAddress author, String name, Date endTime, double reservedPrice, String description) {
+    public Auction(int author, String name, Date endTime, double reservedPrice, String description) {
         this.author = author;
         this.name = name;
         this.endTime = endTime;
         this.reservedPrice = reservedPrice;
         this.description = description;
-        this.bids = new HashMap<PeerAddress, Double>();
+        this.bids = new HashMap<Integer, Double>();
     }
 
-    public void setBids(HashMap<PeerAddress, Double> bids) {
+    public void setBids(HashMap<Integer, Double> bids) {
         this.bids = bids;
     }
 
@@ -39,7 +39,7 @@ public class Auction implements Serializable{
         return description;
     }
 
-    public HashMap<PeerAddress, Double> getBids() {
+    public HashMap<Integer, Double> getBids() {
         return bids;
     }
 
