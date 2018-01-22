@@ -94,6 +94,8 @@ public class AuctionMechanismImpl implements AuctionMechanism {
             futureGet.awaitUninterruptibly();
             if (futureGet.isSuccess()) {
                 Auction auction = ((Auction) futureGet.dataMap().values().iterator().next().object());
+                if(auction.getEndTime().before(new Date()))
+                    return checkAuction(_auction_name);
                 auction.getBids().put(peerID, _bid_amount);
                 dht.put(Number160.createHash(_auction_name)).data(new Data(auction)).start().awaitUninterruptibly();
             }
