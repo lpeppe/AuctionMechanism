@@ -96,13 +96,13 @@ class AuctionMechanismImplTest {
     @Test
     void leaveAuction() {
         try {
-            peer0.createAuction("Forno", new Date(Calendar.getInstance().getTimeInMillis() + 7000), 3000, "Microonde");
+            peer0.createAuction("Forno", new Date(Calendar.getInstance().getTimeInMillis() + 2000), 3000, "Microonde");
             peer1.placeAbid("Forno", 12000);
             assertEquals(peer1.checkAuction("Forno"), "status: open\nbids: [Peer 1: 12000.0] ");
             peer2.placeAbid("Forno", 130000);
             assertEquals(peer0.checkAuction("Forno"), "status: open\nbids: [Peer 1: 12000.0] [Peer 2: 130000.0] ");
             assertTrue(peer2.leave());
-            Thread.sleep(7500);
+            Thread.sleep(2500);
             assertEquals(peer0.checkAuction("Forno"), "status: ended\nwinner: Peer 2\nprice: 12000.0\n");
             peer2 = new AuctionMechanismImpl(2);
             assertEquals(peer2.checkAuction("Forno"), "status: ended\nwinner: Peer 2\nprice: 12000.0\n");
