@@ -1,4 +1,3 @@
-import net.tomp2p.peers.Number160;
 import org.junit.jupiter.api.*;
 
 import java.util.Calendar;
@@ -45,7 +44,7 @@ class AuctionMechanismImplTest {
         try {
             peer0.createAuction("TV2", new Date(Calendar.getInstance().getTimeInMillis() + 1000), 1000, "LG OLED 4K");
             assertEquals(peer0.checkAuction("TV2"), "status: open\nbids: ");
-            Thread.sleep(1000);
+            Thread.sleep(1500);
             assertEquals(peer0.checkAuction("TV2"), "status: ended\nwinner: none\n");
         }
         catch(Exception e) {
@@ -58,7 +57,7 @@ class AuctionMechanismImplTest {
         try {
             peer0.createAuction("Auto", new Date(Calendar.getInstance().getTimeInMillis() + 1000), 10000, "Alfa Giulia Quadrifoglio");
             assertEquals(peer1.placeAbid("Auto", 200000), "status: open\nbids: [Peer 1: 200000.0] ");
-            Thread.sleep(1000);
+            Thread.sleep(1500);
             assertEquals(peer0.checkAuction("Auto"), "status: ended\nwinner: none\n");
         }
         catch(Exception e) {
@@ -70,12 +69,12 @@ class AuctionMechanismImplTest {
     void closedAuction() {
         try {
             peer0.createAuction("PC", new Date(Calendar.getInstance().getTimeInMillis() + 1000), 3000, "Macbook Pro");
-            Thread.sleep(1000);
+            Thread.sleep(1500);
             assertEquals(peer1.placeAbid("PC", 4000), "status: ended\nwinner: none\n");
             assertEquals(peer1.placeAbid("PC", 40), "status: ended\nwinner: none\n");
         }
         catch(Exception e) {
-
+            e.printStackTrace();
         }
     }
 
@@ -86,9 +85,11 @@ class AuctionMechanismImplTest {
             peer1.placeAbid("Borsa", 1200);
             peer1.placeAbid("Borsa", 1300);
             assertEquals(peer0.checkAuction("Borsa"), "status: open\nbids: [Peer 1: 1300.0] ");
+            Thread.sleep(1500);
+            assertEquals(peer0.checkAuction("Borsa"), "status: ended\nwinner: none\n");
         }
         catch(Exception e) {
-
+            e.printStackTrace();
         }
     }
 
@@ -97,14 +98,14 @@ class AuctionMechanismImplTest {
         try {
             peer0.createAuction("Forno", new Date(Calendar.getInstance().getTimeInMillis() + 7000), 3000, "Microonde");
             peer1.placeAbid("Forno", 12000);
-            assertTrue(peer1.leave());
             assertEquals(peer1.checkAuction("Forno"), "status: open\nbids: [Peer 1: 12000.0] ");
-            peer1 = new AuctionMechanismImpl(1);
             peer2.placeAbid("Forno", 130000);
             assertEquals(peer0.checkAuction("Forno"), "status: open\nbids: [Peer 1: 12000.0] [Peer 2: 130000.0] ");
             assertTrue(peer2.leave());
-            Thread.sleep(5000);
+            Thread.sleep(7500);
             assertEquals(peer0.checkAuction("Forno"), "status: ended\nwinner: Peer 2\nprice: 12000.0\n");
+            peer2 = new AuctionMechanismImpl(2);
+            assertEquals(peer2.checkAuction("Forno"), "status: ended\nwinner: Peer 2\nprice: 12000.0\n");
         }
         catch(Exception e) {
             e.printStackTrace();
@@ -140,7 +141,7 @@ class AuctionMechanismImplTest {
             assertEquals(peer0.checkAuction("Lavatrice"), "status: open\nbids: [Peer 1: 100.0] [Peer 2: 500.0] ");
             peer3.placeAbid("Lavatrice", 50);
             assertEquals(peer0.checkAuction("Lavatrice"), "status: open\nbids: [Peer 1: 100.0] [Peer 2: 500.0] [Peer 3: 50.0] ");
-            Thread.sleep(4000);
+            Thread.sleep(1500);
             assertEquals(peer0.checkAuction("Lavatrice"), "status: ended\nwinner: none\n");
         }
         catch(Exception e) {
